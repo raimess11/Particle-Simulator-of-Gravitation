@@ -11,7 +11,7 @@ const double PI = 3.14159265;
 const int WIDTH = 640*1.5, LENGTH = 480*1.5;
 
 //render scale setting
-int scale = 8;
+int scale = 4;
 int x_scale= 1 * scale;
 int y_scale= 1 * scale;
 
@@ -47,89 +47,34 @@ public:
 class Particle{
 public:
     Vector2D position;
+
     Vector2D velocity;
     Vector2D direction;
-    float torsi;
-    float rotation_momentum;
-    float angle=0;
-    float speed;
-    float max_speed=100;
-    float acceleration=0.5;
-    bool charge;
+
+    float mass = 10;
+    bool statis;
+
+    SDL_Color color;
 
     float disctance_to(float x1, float y1)
     {
         return phytagoras(x1-position.x,y1-position.y);
     }
 
-    void move_and_slide(Vector2D vel){
-
-        position.x += vel.x * delta_process;
-        position.y += vel.y * delta_process;
+    void translation(Vector2D* F, Vector2D dir, float a){
+            F->x += a * dir.x;
+            F->y += a * dir.y;
     }
 
-    void translation(Vector2D* vel, Vector2D dir, float accel){
-        if (phytagoras(vel -> x, vel-> y) < max_speed){
-            vel->x += accel * dir.x;
-            vel->y += accel * dir.y;
-        }
-
+    void move_and_slide(){
+        position.x += velocity.x * delta_process;
+        position.y += velocity.y * delta_process;
     }
-
-    void get_direction(double *x, double *y, float teta){
-    *x = sin(teta*(PI/180));
-    *y = cos(teta*(PI/180));
-    }
-
-    void left_turn(){
-        torsi = 0.07;
-    }
-    void right_turn(){
-        torsi = -0.07;
-    }
-
-    void rotation(){
-
-        if (abs(rotation_momentum) < 0.7){
-            rotation_momentum += torsi;
-        }
-
-        angle += rotation_momentum;
-        angle = int(angle*1000)%(360*1000);
-        angle = angle/1000;
-
-    if(position.x>(WIDTH/x_scale)-20/x_scale){
-       // if (angle >= 0 && angle < 180){left_turn();}
-       // else {right_turn();}
-    }
-    if(position.y<20/y_scale){
-        //if (angle >= 90 && angle < 270){left_turn();}
-        //else {right_turn();}
-    }
-    if(position.x<20/x_scale){
-        //if (angle >= 180 && angle < 360){left_turn();}
-        //else {right_turn();}
-    }
-    if(position.y>(LENGTH/y_scale)-20/y_scale){
-        //if (angle >= 270 && angle < 90){left_turn();}
-        //else {right_turn();}
-    }
-    }
-
-
-
-    void reaction(){
-        get_direction(&direction.x,&direction.y,angle);
-        translation(&velocity,direction,acceleration);
-        move_and_slide(velocity);
-
-    }
-
 };
 
 class Tab_Object{
 public:
-    Particle id[10000];
+    Particle id[1000];
     int len;
 
     void append(Particle p) {
@@ -139,27 +84,40 @@ public:
     }
 };
 
+class Tab_Vector2D{
+public:
+    Vector2D id[1000];
+    int len;
+    void append(Vector2D p) {
+        id[len] = p;
+        len++;
+    }
+};
+
 void Gforce(Tab_Object tab, Particle* POV,int current_index){
-        Vector2D vel;
-        Vector2D dir;
+        Vector2D vel = POV->velocity;
         for(int i=0; i<tab.len; i++){
+            Vector2D dir;
             if(i != current_index ){
-                if (tab.id[i].disctance_to(POV->position.x,POV->position.y) < 200/scale){
+                if (POV->disctance_to(tab.id[i].position.x,tab.id[i].position.y) >1 || true ){
                     dir.x = (tab.id[i].position.x - POV->position.x) / POV->disctance_to(tab.id[i].position.x,tab.id[i].position.y);
                     dir.y = (tab.id[i].position.y - POV->position.y) / POV->disctance_to(tab.id[i].position.x,tab.id[i].position.y);
-                    if(tab.id[i].disctance_to(POV->position.x,POV->position.y)!=0){
-                        POV->translation(&vel,dir,10 / tab.id[i].disctance_to(POV->position.x,POV->position.y));
+                    if(abs(tab.id[i].disctance_to(POV->position.x,POV->position.y))>1){
+                        POV->translation(&vel,dir,(10 * tab.id[i].mass) / (pow(tab.id[i].disctance_to(POV->position.x,POV->position.y),2)));
                     }
                 }
                         //std::cout<<"pulled by gravity"<<std::endl;
             }
         }
-        POV->move_and_slide(vel);
+        POV->velocity = vel;
+        if( deltaTime%200 > 136 ){
+        }
 
 }
 //declare the particle
 Tab_Object object;
 
+Tab_Vector2D coordinate;
 
 int main( int argc, char *argv[] )
 {
@@ -181,7 +139,7 @@ int main( int argc, char *argv[] )
     }
     SDL_Event event;
 
-
+    std::cout<<object.len;
     //main loop
     while(true){
         //initialize begin time for FPS reason
@@ -203,7 +161,43 @@ int main( int argc, char *argv[] )
                     SDL_GetMouseState(&x,&y);
                     new_particle.position.x = x/x_scale;
                     new_particle.position.y = y/y_scale;
-                    std::cout<<"button pressed on: "<<x/x_scale<<std::endl;
+                    new_particle.color.b = 200;
+                    new_particle.color.a = 255;
+                    std::cout<<"summon proton at: "<<x/x_scale<<std::endl;
+                    object.append(new_particle);
+                }
+                if(event.button.button == SDL_BUTTON_MIDDLE){
+
+                    holdLMB=true;
+
+                    Particle new_particle;
+                    int x;
+                    int y;
+                    SDL_GetMouseState(&x,&y);
+                    new_particle.position.x = x/x_scale;
+                    new_particle.position.y = y/y_scale;
+                    new_particle.color.r = 255;
+                    new_particle.color.g = 255;
+                    new_particle.color.b = 255;
+                    new_particle.color.a = 255;
+                    new_particle.statis = true;
+                    std::cout<<"summon proton at: "<<x/x_scale<<std::endl;
+                    object.append(new_particle);
+                }
+                if(event.button.button == SDL_BUTTON_RIGHT){
+                    holdLMB=true;
+
+                    Particle new_particle;
+                    int x;
+                    int y;
+                    SDL_GetMouseState(&x,&y);
+                    new_particle.position.x = x/x_scale;
+                    new_particle.position.y = y/y_scale;
+                    new_particle.mass = 0;
+                    new_particle.color.r = 150;
+                    new_particle.color.a = 255;
+                    new_particle.velocity.x = 30;
+                    std::cout<<"summon electron at: "<<x/x_scale<<std::endl;
                     object.append(new_particle);
                 }
             }
@@ -228,12 +222,29 @@ int main( int argc, char *argv[] )
             }
             //processing object
             for (int i=0; i<object.len; i++){
-                    if(object.id[i].charge){
+                    if(true){
                         //object.id[i].reaction();
                         Gforce(object,&object.id[i],i);
+                        //std::cout<<object.id[i].position.x<<"'"<<object.id[i].position.y<<std::endl;
              //::cout<<"delta of object: "<<delta_process<<std::endl;
                     }
                 }
+            for (int i=0; i<object.len; i++){
+                //bool free = true;
+                    /*for (int j=0; j<coordinate.len; j++){
+                        if(j==i){continue;}
+                        if(phytagoras(object.id[i].velocity.x - coordinate.id[j].x, object.id[i].velocity.y - coordinate.id[j].y) < 1){
+                            object.id[i].velocity.x -= object.id[i].velocity.x * (1/phytagoras(object.id[i].velocity.x,object.id[i].velocity.y));
+                            object.id[i].velocity.y -= object.id[i].velocity.y * (1/phytagoras(object.id[i].velocity.x,object.id[i].velocity.y));
+                            break;
+                        }
+                    }*/
+                if(!object.id[i].statis){
+                    object.id[i].move_and_slide();
+                }
+                //coordinate.append(object.id[i].position);
+            }
+
                // std::cout<<"delta of object: "<<delta_process<<std::endl;
 
             //render
@@ -242,7 +253,7 @@ int main( int argc, char *argv[] )
 
             //render every particle
             for (int i=0; i<object.len; i++){
-                SDL_SetRenderDrawColor(renderer,0,100,0,255);
+                SDL_SetRenderDrawColor(renderer,object.id[i].color.r,object.id[i].color.g,object.id[i].color.b,object.id[i].color.a);
                 //std::cout<<"position of object: "<<object.id[i].position.x<< " , "<< object.id[i].position.y <<std::endl;
                // std::cout<<"velocity of object: "<<object.id[i].velocity.x<< " , "<< object.id[i].velocity.y <<std::endl;
                 //std::cout<<"angle of object: "<<object.id[i].angle<<std::endl;

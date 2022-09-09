@@ -8,10 +8,10 @@
 const double PI = 3.14159265;
 
 //window setting
-const int WIDTH = 640*1.5, LENGTH = 480*1.5;
+const int WIDTH = 1324, LENGTH = 720;
 
 //render scale setting
-int scale = 4;
+int scale = 2;
 int x_scale= 1 * scale;
 int y_scale= 1 * scale;
 
@@ -163,6 +163,7 @@ int main( int argc, char *argv[] )
                     new_particle.position.y = y/y_scale;
                     new_particle.color.b = 200;
                     new_particle.color.a = 255;
+                    new_particle.mass = 3;
                     std::cout<<"summon proton at: "<<x/x_scale<<std::endl;
                     object.append(new_particle);
                 }

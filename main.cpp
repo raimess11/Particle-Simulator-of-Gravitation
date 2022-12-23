@@ -10,11 +10,13 @@ const double PI = 3.14159265;
 //window setting
 const int WIDTH = 1324, LENGTH = 720;
 
-//render scale setting
-int scale = 2;
-int x_scale= 1 * scale;
-int y_scale= 1 * scale;
+//render rander_scale setting
+int rander_scale = 3;
+int x_scale= 1 * rander_scale;
+int y_scale= 1 * rander_scale;
 
+//world scale
+int global_scale = 3;
 
 //refresh rate things
 double CPU = 0;
@@ -51,7 +53,9 @@ public:
     Vector2D velocity;
     Vector2D direction;
 
-    float mass = 10;
+    float mass;
+    int charge;
+
     bool statis;
 
     SDL_Color color;
@@ -102,8 +106,8 @@ void Gforce(Tab_Object tab, Particle* POV,int current_index){
                 if (POV->disctance_to(tab.id[i].position.x,tab.id[i].position.y) >1 || true ){
                     dir.x = (tab.id[i].position.x - POV->position.x) / POV->disctance_to(tab.id[i].position.x,tab.id[i].position.y);
                     dir.y = (tab.id[i].position.y - POV->position.y) / POV->disctance_to(tab.id[i].position.x,tab.id[i].position.y);
-                    if(abs(tab.id[i].disctance_to(POV->position.x,POV->position.y))>1){
-                        POV->translation(&vel,dir,(10 * tab.id[i].mass) / (pow(tab.id[i].disctance_to(POV->position.x,POV->position.y),2)));
+                    if(abs(tab.id[i].disctance_to(POV->position.x,POV->position.y))>10){
+                        POV->translation(&vel,dir,(-10 * tab.id[i].mass * tab.id[i].charge * POV->charge) / (pow(tab.id[i].disctance_to(POV->position.x,POV->position.y),2)));
                     }
                 }
                         //std::cout<<"pulled by gravity"<<std::endl;
@@ -113,6 +117,30 @@ void Gforce(Tab_Object tab, Particle* POV,int current_index){
         if( deltaTime%200 > 136 ){
         }
 
+}
+
+Particle electron;
+
+
+Particle proton;
+
+
+
+Particle neutron;
+
+
+
+
+void add_particle(Particle new_particle, Tab_Object* object, Vector2D velocity,float offset_x = 0, float offset_y = 0)
+{
+    int x;
+    int y;
+    SDL_GetMouseState(&x,&y);
+    new_particle.position.x = ((x/x_scale)*global_scale) + offset_x;
+    new_particle.position.y = ((y/y_scale)*global_scale) + offset_y;
+    new_particle.velocity = velocity;
+    std::cout<<"summon proton at: "<<(x/x_scale)+ offset_x<<std::endl;
+    object->append(new_particle);
 }
 //declare the particle
 Tab_Object object;
@@ -139,7 +167,33 @@ int main( int argc, char *argv[] )
     }
     SDL_Event event;
 
-    std::cout<<object.len;
+    //proton attribute
+    proton.color.r = 0;
+    proton.color.g = 50;
+    proton.color.b = 200;
+    proton.color.a = 255;
+    proton.mass = 250;
+    proton.charge = 1 ;
+    proton.statis = true;
+
+    //electron attribute
+    electron.color.r = 100;
+    electron.color.g = 0;
+    electron.color.b = 0;
+    electron.color.a = 255;
+    electron.mass = 10;
+    electron.charge = -1;
+    electron.statis = false;
+
+    //neutron
+    neutron.color.r = 255;
+    neutron.color.g = 255;
+    neutron.color.b = 255;
+    neutron.color.a = 255;
+    neutron.mass = 1000;
+    neutron.charge = -1;
+    neutron.statis = true;
+
     //main loop
     while(true){
         //initialize begin time for FPS reason
@@ -155,51 +209,22 @@ int main( int argc, char *argv[] )
 
                     holdLMB=true;
 
-                    Particle new_particle;
-                    int x;
-                    int y;
-                    SDL_GetMouseState(&x,&y);
-                    new_particle.position.x = x/x_scale;
-                    new_particle.position.y = y/y_scale;
-                    new_particle.color.b = 200;
-                    new_particle.color.a = 255;
-                    new_particle.mass = 3;
-                    std::cout<<"summon proton at: "<<x/x_scale<<std::endl;
-                    object.append(new_particle);
+                    Vector2D vel;
+                    add_particle(electron,&object,vel);
                 }
                 if(event.button.button == SDL_BUTTON_MIDDLE){
 
                     holdLMB=true;
 
-                    Particle new_particle;
-                    int x;
-                    int y;
-                    SDL_GetMouseState(&x,&y);
-                    new_particle.position.x = x/x_scale;
-                    new_particle.position.y = y/y_scale;
-                    new_particle.color.r = 255;
-                    new_particle.color.g = 255;
-                    new_particle.color.b = 255;
-                    new_particle.color.a = 255;
-                    new_particle.statis = true;
-                    std::cout<<"summon proton at: "<<x/x_scale<<std::endl;
-                    object.append(new_particle);
+                    Vector2D vel;
+                    add_particle(neutron,&object,vel);
+
                 }
                 if(event.button.button == SDL_BUTTON_RIGHT){
                     holdLMB=true;
 
-                    Particle new_particle;
-                    int x;
-                    int y;
-                    SDL_GetMouseState(&x,&y);
-                    new_particle.position.x = x/x_scale;
-                    new_particle.position.y = y/y_scale;
-                    new_particle.mass = 0;
-                    new_particle.color.r = 150;
-                    new_particle.color.a = 255;
-                    new_particle.velocity.x = 30;
-                    std::cout<<"summon electron at: "<<x/x_scale<<std::endl;
-                    object.append(new_particle);
+                    Vector2D vel;
+                    add_particle(proton,&object,vel);
                 }
             }
             if(event.type == SDL_MOUSEBUTTONUP){
@@ -255,12 +280,14 @@ int main( int argc, char *argv[] )
             //render every particle
             for (int i=0; i<object.len; i++){
                 SDL_SetRenderDrawColor(renderer,object.id[i].color.r,object.id[i].color.g,object.id[i].color.b,object.id[i].color.a);
-                //std::cout<<"position of object: "<<object.id[i].position.x<< " , "<< object.id[i].position.y <<std::endl;
+               // std::cout<<"position of object: "<<object.id[i].position.x<< " , "<< object.id[i].position.y <<std::endl;
                // std::cout<<"velocity of object: "<<object.id[i].velocity.x<< " , "<< object.id[i].velocity.y <<std::endl;
                 //std::cout<<"angle of object: "<<object.id[i].angle<<std::endl;
-                SDL_RenderDrawPoint(renderer,object.id[i].position.x,object.id[i].position.y);
+
+                SDL_RenderDrawPoint(renderer,object.id[i].position.x/global_scale,object.id[i].position.y/global_scale);
             }
             SDL_RenderPresent(renderer);
+            //recount FPS
             fps++;
             vdeltaTime=0;
             delta_process=begintime - process_time;
